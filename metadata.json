@@ -1,0 +1,6 @@
+{
+  "name": "Maktab Yangiliklari",
+  "description": "Maktablar uchun maxsus ulanish kodi, foto va video yangiliklar, e'lonlar va ma'muriyat boshqaruvi platformasi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

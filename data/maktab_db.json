@@ -1,0 +1,101 @@
+{
+  "schools": [
+    {
+      "id": "school-25-demo",
+      "name": "25-sonli umumiy o'rta ta'lim maktabi",
+      "number": "25",
+      "region": "Toshkent shahri, Chilonzor tumani",
+      "director": "Alisher Vohidov",
+      "phone": "+998 90 123 45 67",
+      "code": "MK-252525",
+      "adminLogin": "admin25",
+      "passwordHash": "192b2da219ea8859d5e8e5d53770fff46c334bfc1fb1d3611148ab312ce612b6",
+      "salt": "c4509a6ee06488a7e2df01e2def76925",
+      "createdAt": "2026-10-07T14:14:17.354Z",
+      "description": "Aniq va tabiiy fanlarga ixtisoslashtirilgan zamonaviy maktab"
+    }
+  ],
+  "members": [
+    {
+      "id": "member-1",
+      "schoolId": "school-25-demo",
+      "userId": "user-sample-1",
+      "name": "Jasur Rahimov",
+      "phone": "+998 90 987 65 43",
+      "role": "student",
+      "joinedAt": "2026-10-08T14:14:17.354Z"
+    },
+    {
+      "id": "member-2",
+      "schoolId": "school-25-demo",
+      "userId": "user-sample-2",
+      "name": "Malika Yusupova",
+      "phone": "+998 93 555 44 33",
+      "role": "parent",
+      "joinedAt": "2026-10-10T14:14:17.354Z"
+    }
+  ],
+  "news": [
+    {
+      "id": "news-demo-1",
+      "schoolId": "school-25-demo",
+      "title": "Yangi o'quv yili uchun xalqaro robototexnika to'garagi ish boshladi",
+      "content": "Maktabimizda zamonaviy STEM laboratoriyasi negizida robototexnika va dasturlash to'garagi o'z faoliyatini boshladi. O'quvchilar xalqaro olimpiadalarga tayyorgarlik ko'rishmoqda. Darslar haftada uch marta malakali ustozlar tomonidan olib boriladi.",
+      "category": "tadbir",
+      "isImportant": true,
+      "images": [
+        "/src/assets/images/school_science_fair_1791986638263.jpg"
+      ],
+      "videoUrl": null,
+      "authorName": "Alisher Vohidov",
+      "authorRole": "Maktab direktori",
+      "createdAt": "2026-10-12T14:14:17.354Z",
+      "viewsCount": 142
+    },
+    {
+      "id": "news-demo-2",
+      "schoolId": "school-25-demo",
+      "title": "Maktabimiz jamoasi shahar fan olimpiadasida 1-o'rinni egalladi",
+      "content": "Chilonzor tumani bo'yicha o'tkazilgan fizika va matematika fanlari bellashuvida 10-sinf o'quvchilarimiz mutlaq g'oliblikni qo'lga kiritishdi. Barcha o'quvchilarimiz va ustozlarni ushbu yuksak natija bilan tabriklaymiz!",
+      "category": "olimpiada",
+      "isImportant": false,
+      "images": [
+        "/src/assets/images/modern_uzbek_school_1791986638152.jpg"
+      ],
+      "videoUrl": null,
+      "authorName": "Nodira Karimova",
+      "authorRole": "O'quv ishlari bo'yicha direktor o'rinbosari",
+      "createdAt": "2026-10-09T14:14:17.354Z",
+      "viewsCount": 98
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-0a9c2dd8-8c05-4d44-a112-f7ce641f09c6",
+      "schoolId": "school-44bd0a90-4d87-4d6b-b0d6-4566aef5d757",
+      "schoolName": "84-sonli maktab",
+      "newsId": "news-f7f91286-9d0c-413c-b793-dd52a59af3ac",
+      "title": "1-chorak yakunlari va ota-onalar majlisi",
+      "message": "Hurmatli ota-onalar va oquvchilar! Shanba kuni soat 10:00 da 1-chorak yakunlariga bagishlangan umumiy majlis bolib otadi...",
+      "createdAt": "2026-10-14T14:15:51.096Z"
+    },
+    {
+      "id": "notif-1",
+      "schoolId": "school-25-demo",
+      "schoolName": "25-sonli umumiy o'rta ta'lim maktabi",
+      "newsId": "news-demo-1",
+      "title": "Robototexnika to'garagi ish boshladi",
+      "message": "Muhim e'lon: STEM laboratoriyasida yangi to'garaklar ochildi.",
+      "createdAt": "2026-10-12T14:14:17.354Z"
+    }
+  ],
+  "sessions": [
+    {
+      "token": "cf738c492354a98b0be5e6bf57bea58b7c3851e528812e1054371e3d38e247d5",
+      "schoolId": "school-44bd0a90-4d87-4d6b-b0d6-4566aef5d757",
+      "adminLogin": "admin84",
+      "directorName": "Dilshod Karimov",
+      "createdAt": "2026-10-14T14:15:01.194Z"
+    }
+  ]
+}

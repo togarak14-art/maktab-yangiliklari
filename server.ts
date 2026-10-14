@@ -728,6 +728,11 @@ app.get('/api/notifications', (req, res) => {
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
 
+  // API 404 fallback (always return JSON for api routes)
+  app.all('/api/*', (_req, res) => {
+    res.status(404).json({ error: "Bunday API marshrut mavjud emas." });
+  });
+
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({

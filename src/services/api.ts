@@ -1,7 +1,30 @@
 import { School, NewsItem, SchoolMember, AppNotification, AdminUser, UserProfile } from '../types';
+import { localDb } from './localDb';
 
 const ADMIN_TOKEN_KEY = 'maktab_admin_token';
 const USER_PROFILE_KEY = 'maktab_user_profile';
+
+// Safe fetch helper that handles HTML 404/500 responses gracefully
+// (especially in APKs, WebViews, or static web hosting)
+async function safeFetch(url: string, options?: RequestInit): Promise<{ ok: boolean; data?: any; error?: string }> {
+  try {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get('content-type') || '';
+
+    // If server returned HTML (e.g. 404 "The page cannot be found...", 502, SPA index.html)
+    if (!contentType.includes('application/json')) {
+      return { ok: false, error: `Serverdan kutilmagan javob qaytdi (${res.status})` };
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: data.error || `Server xatosi: ${res.status}` };
+    }
+    return { ok: true, data };
+  } catch (err: any) {
+    return { ok: false, error: err.message || 'Aloqa xatosi' };
+  }
+}
 
 export const api = {
   // Token management
@@ -13,6 +36,7 @@ export const api = {
   },
   clearToken(): void {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localDb.logoutAdmin();
   },
 
   // User Profile in LocalStorage
@@ -44,31 +68,29 @@ export const api = {
 
   // Schools
   async getSchools(): Promise<School[]> {
-    const res = await fetch('/api/schools');
-    if (!res.ok) throw new Error('Maktablar ro\'yxatini yuklab bo\'lmadi');
-    const data = await res.json();
-    return data.schools;
+    const result = await safeFetch('/api/schools');
+    if (result.ok && result.data?.schools) {
+      return result.data.schools;
+    }
+    // Fallback to local storage
+    return localDb.getSchools();
   },
 
   async getSchool(id: string): Promise<School> {
-    const res = await fetch(`/api/schools/${id}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Maktab ma\'lumotlarini yuklab bo\'lmadi');
+    const result = await safeFetch(`/api/schools/${id}`);
+    if (result.ok && result.data?.school) {
+      return result.data.school;
     }
-    const data = await res.json();
-    return data.school;
+    return localDb.getSchool(id);
   },
 
   async getSchoolByCode(code: string): Promise<School> {
     const clean = code.trim().toUpperCase();
-    const res = await fetch(`/api/schools/by-code/${encodeURIComponent(clean)}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Bu kod bo\'yicha maktab topilmadi');
+    const result = await safeFetch(`/api/schools/by-code/${encodeURIComponent(clean)}`);
+    if (result.ok && result.data?.school) {
+      return result.data.school;
     }
-    const data = await res.json();
-    return data.school;
+    return localDb.getSchoolByCode(clean);
   },
 
   async createSchool(payload: {
@@ -81,17 +103,21 @@ export const api = {
     password: string;
     description?: string;
   }): Promise<{ school: School; token: string; admin: AdminUser }> {
-    const res = await fetch('/api/schools', {
+    const result = await safeFetch('/api/schools', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Maktab yaratishda xatolik yuz berdi');
+
+    if (result.ok && result.data?.school) {
+      this.setToken(result.data.token);
+      return result.data;
     }
-    this.setToken(data.token);
-    return data;
+
+    // Fallback to local storage (e.g. inside HTML-to-APK or static hosting)
+    const localResult = localDb.createSchool(payload);
+    this.setToken(localResult.token);
+    return localResult;
   },
 
   async updateSchool(
@@ -106,7 +132,7 @@ export const api = {
     }>
   ): Promise<School> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}`, {
+    const result = await safeFetch(`/api/schools/${schoolId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -114,64 +140,73 @@ export const api = {
       },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Maktabni yangilashda xatolik yuz berdi');
-    return data.school;
+
+    if (result.ok && result.data?.school) {
+      return result.data.school;
+    }
+    return localDb.updateSchool(schoolId, payload);
   },
 
   async regenerateCode(schoolId: string): Promise<string> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}/regenerate-code`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/regenerate-code`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Kodni yangilashda xatolik');
-    return data.code;
+
+    if (result.ok && result.data?.code) {
+      return result.data.code;
+    }
+    return localDb.regenerateCode(schoolId);
   },
 
   async joinSchool(
     schoolId: string,
     payload: { code: string; userName: string; userPhone: string; role: string; userId: string }
   ): Promise<School> {
-    const res = await fetch(`/api/schools/${schoolId}/join`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Maktabga ulanib bo\'lmadi');
-    return data.school;
+
+    if (result.ok && result.data?.school) {
+      return result.data.school;
+    }
+    return localDb.joinSchool(schoolId, payload);
   },
 
   async getMembers(schoolId: string): Promise<SchoolMember[]> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}/members`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/members`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'A\'zolarni yuklab bo\'lmadi');
-    return data.members;
+
+    if (result.ok && result.data?.members) {
+      return result.data.members;
+    }
+    return localDb.getMembers(schoolId);
   },
 
   async removeMember(schoolId: string, memberId: string): Promise<void> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}/members/${memberId}`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/members/${memberId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || 'A\'zoni o\'chirib bo\'lmadi');
+
+    if (!result.ok) {
+      localDb.removeMember(schoolId, memberId);
     }
   },
 
   // News CRUD
   async getSchoolNews(schoolId: string): Promise<{ school: School; news: NewsItem[] }> {
-    const res = await fetch(`/api/schools/${schoolId}/news`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Yangiliklarni yuklab bo\'lmadi');
-    return { school: data.school, news: data.news };
+    const result = await safeFetch(`/api/schools/${schoolId}/news`);
+    if (result.ok && result.data?.news) {
+      return { school: result.data.school, news: result.data.news };
+    }
+    return localDb.getSchoolNews(schoolId);
   },
 
   async createNews(
@@ -188,7 +223,7 @@ export const api = {
     }
   ): Promise<NewsItem> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}/news`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/news`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -196,9 +231,11 @@ export const api = {
       },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Yangilik chop etishda xatolik');
-    return data.newsItem;
+
+    if (result.ok && result.data?.newsItem) {
+      return result.data.newsItem;
+    }
+    return localDb.createNews(schoolId, payload);
   },
 
   async updateNews(
@@ -214,7 +251,7 @@ export const api = {
     }>
   ): Promise<NewsItem> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}/news/${newsId}`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/news/${newsId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -222,112 +259,118 @@ export const api = {
       },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Yangilikni tahrirlashda xatolik');
-    return data.newsItem;
+
+    if (result.ok && result.data?.newsItem) {
+      return result.data.newsItem;
+    }
+    return localDb.updateNews(schoolId, newsId, payload as any);
   },
 
   async deleteNews(schoolId: string, newsId: string): Promise<void> {
     const token = this.getToken();
-    const res = await fetch(`/api/schools/${schoolId}/news/${newsId}`, {
+    const result = await safeFetch(`/api/schools/${schoolId}/news/${newsId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || 'Yangilikni o\'chirib bo\'lmadi');
+
+    if (!result.ok) {
+      localDb.deleteNews(schoolId, newsId);
     }
   },
 
-  // File Upload with Progress Tracking
-  uploadFiles(
+  // File Upload with Progress Tracking and Base64 Fallback
+  async uploadFiles(
     files: File[],
     onProgress?: (percent: number) => void
   ): Promise<{ urls: string[]; files: Array<{ url: string; originalName: string; size: number }> }> {
-    return new Promise((resolve, reject) => {
+    try {
+      // First attempt server upload
       const formData = new FormData();
       for (const file of files) {
         formData.append('files', file);
       }
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/upload');
+      const res = await new Promise<{ urls: string[]; files: any[] }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload');
 
-      const token = this.getToken();
-      if (token) {
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      }
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          onProgress(percent);
+        const token = this.getToken();
+        if (token) {
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
         }
-      };
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve(data);
-          } catch (e) {
-            reject(new Error('Server javobini o\'qishda xatolik'));
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && onProgress) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
           }
-        } else {
-          try {
-            const err = JSON.parse(xhr.responseText);
-            reject(new Error(err.error || 'Yuklashda xatolik yuz berdi'));
-          } catch (e) {
-            reject(new Error(`Yuklashda xatolik (${xhr.status})`));
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              resolve(data);
+            } catch {
+              reject(new Error('Invalid response'));
+            }
+          } else {
+            reject(new Error(`Server error ${xhr.status}`));
           }
-        }
-      };
+        };
 
-      xhr.onerror = () => {
-        reject(new Error('Internet yoki server bilan aloqa uzildi. Qayta urinib ko\'ring.'));
-      };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(formData);
+      });
 
-      xhr.send(formData);
-    });
+      return res;
+    } catch {
+      // If server upload failed (offline or APK WebView), fall back to base64 Data URLs!
+      return localDb.uploadFiles(files, onProgress);
+    }
   },
 
   // Admin Auth
   async loginAdmin(login: string, password: string): Promise<{ token: string; school: School; admin: AdminUser }> {
-    const res = await fetch('/api/auth/login', {
+    const result = await safeFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ login, password }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Kirishda xatolik yuz berdi');
-    this.setToken(data.token);
-    return data;
+
+    if (result.ok && result.data?.school) {
+      this.setToken(result.data.token);
+      return result.data;
+    }
+
+    // Fallback to localDb
+    const localResult = localDb.loginAdmin(login, password);
+    this.setToken(localResult.token);
+    return localResult;
   },
 
   async getCurrentAdmin(): Promise<{ admin: AdminUser; school: School } | null> {
     const token = this.getToken();
     if (!token) return null;
-    try {
-      const res = await fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        this.clearToken();
-        return null;
-      }
-      return await res.json();
-    } catch {
-      return null;
+
+    const result = await safeFetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (result.ok && result.data?.school) {
+      return result.data;
     }
+
+    return localDb.getCurrentAdmin();
   },
 
   async logoutAdmin(): Promise<void> {
     const token = this.getToken();
     if (token) {
-      await fetch('/api/auth/logout', {
+      await safeFetch('/api/auth/logout', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
+      });
     }
     this.clearToken();
   },
@@ -335,9 +378,10 @@ export const api = {
   // Notifications
   async getNotifications(schoolIds: string[]): Promise<AppNotification[]> {
     const query = schoolIds.length > 0 ? `?schools=${encodeURIComponent(schoolIds.join(','))}` : '';
-    const res = await fetch(`/api/notifications${query}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.notifications || [];
+    const result = await safeFetch(`/api/notifications${query}`);
+    if (result.ok && result.data?.notifications) {
+      return result.data.notifications;
+    }
+    return localDb.getNotifications(schoolIds);
   },
 };

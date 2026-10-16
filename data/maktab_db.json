@@ -1,6 +1,19 @@
 {
   "schools": [
     {
+      "id": "school-7f462930-6d84-4d6a-8579-b33fdab90592",
+      "name": "umumiy orta talim maktabi",
+      "number": "40",
+      "region": "Andijon viloyati, Oltinkol tumani,Kotarmachek mfy",
+      "director": "jalilov abdurazoq",
+      "phone": "+998 945471420",
+      "code": "MK-560465",
+      "adminLogin": "maktab40--",
+      "passwordHash": "302943f9001ef5ca372f17cad28a6c2b3caf91381d0264b29a7f3055cec5722c",
+      "salt": "6890153b27c72f29f06b791067a77346",
+      "createdAt": "2026-10-16T05:22:02.909Z"
+    },
+    {
       "id": "school-25-demo",
       "name": "25-sonli umumiy o'rta ta'lim maktabi",
       "number": "25",
@@ -96,6 +109,20 @@
       "adminLogin": "admin84",
       "directorName": "Dilshod Karimov",
       "createdAt": "2026-10-14T14:15:01.194Z"
+    },
+    {
+      "token": "94b01435a1caecfe9672098f1f2fbeab52b4fef23d71c8edabbc2a7943458947",
+      "schoolId": "school-7f462930-6d84-4d6a-8579-b33fdab90592",
+      "adminLogin": "maktab40--",
+      "directorName": "jalilov abdurazoq",
+      "createdAt": "2026-10-16T05:22:02.909Z"
+    },
+    {
+      "token": "ecd6b89c0c15d4172df29052c9dbc16f2143bcddf753bf87b54345b91e40f3e6",
+      "schoolId": "school-38392626-8de8-4ec3-b485-3aff059c7051",
+      "adminLogin": "testlogin2",
+      "directorName": "Test",
+      "createdAt": "2026-10-16T05:55:17.045Z"
     }
   ]
 }

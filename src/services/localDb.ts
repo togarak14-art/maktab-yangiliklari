@@ -163,7 +163,11 @@ export const localDb = {
     login: string;
     password: string;
     description?: string;
+    creationCode?: string;
   }): { school: School; token: string; admin: AdminUser } {
+    if (payload.creationCode !== '201311') {
+      throw new Error("Maktab yaratish uchun maxsus ruxsat kodi noto'g'ri.");
+    }
     initStorage();
     const schools = getStored<any[]>(STORAGE_KEY_SCHOOLS, []);
 

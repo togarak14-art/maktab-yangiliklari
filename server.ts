@@ -327,7 +327,11 @@ app.get('/api/schools/by-code/:code', (req, res) => {
 
 // POST /api/schools - Create a brand new school
 app.post('/api/schools', (req, res) => {
-  const { name, number, region, director, phone, login, password, description } = req.body;
+  const { name, number, region, director, phone, login, password, description, creationCode } = req.body;
+
+  if (creationCode !== '201311') {
+    return res.status(403).json({ error: "Maktab yaratish uchun maxsus ruxsat kodi noto'g'ri." });
+  }
 
   if (!name || !region || !director || !phone || !login || !password) {
     return res.status(400).json({ error: "Iltimos, barcha majburiy maydonlarni to'ldiring." });

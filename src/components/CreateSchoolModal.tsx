@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  KeyRound,
 } from 'lucide-react';
 
 interface CreateSchoolModalProps {
@@ -46,6 +47,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
   onClose,
   onSchoolCreated,
 }) => {
+  const [creationCode, setCreationCode] = useState('');
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
   const [region, setRegion] = useState(REGIONS[0]);
@@ -70,6 +72,11 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (creationCode.trim() !== '201311') {
+      setError("Maktab yaratish uchun maxsus ruxsat kodi noto'g'ri. Iltimos, to'g'ri kodni kiriting.");
+      return;
+    }
 
     if (!name.trim()) {
       setError("Maktab nomini kiriting.");
@@ -104,6 +111,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
         login: login.trim(),
         password: password.trim(),
         description: description.trim() || undefined,
+        creationCode: creationCode.trim(),
       });
 
       setCreatedSchool(res.school);
@@ -150,6 +158,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
       // Reset form
       setCreatedSchool(null);
       setCreatedAdmin(null);
+      setCreationCode('');
       setName('');
       setNumber('');
       setDistrict('');
@@ -255,6 +264,25 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 {error}
               </div>
             )}
+
+            {/* Special Authorization Code Field */}
+            <div className="space-y-1.5 bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                Maktab yaratish maxsus ruxsat kodi *
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="Maxsus ruxsat kodini kiriting"
+                value={creationCode}
+                onChange={(e) => setCreationCode(e.target.value)}
+                className="w-full px-3.5 py-2 text-sm font-mono tracking-wider border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+              <p className="text-[11px] text-slate-500">
+                Faqat maxsus ruxsat kodiga ega bo'lgan mas'ullar yangi maktab ochishi mumkin.
+              </p>
+            </div>
 
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">

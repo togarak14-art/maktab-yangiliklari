@@ -102,6 +102,7 @@ export const api = {
     login: string;
     password: string;
     description?: string;
+    creationCode?: string;
   }): Promise<{ school: School; token: string; admin: AdminUser }> {
     const result = await safeFetch('/api/schools', {
       method: 'POST',

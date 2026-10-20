@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { School, AdminUser } from '../types';
+import { api } from '../services/api';
 import {
   GraduationCap,
   PlusCircle,
@@ -18,6 +19,8 @@ import {
   Building2,
   X,
   Filter,
+  RefreshCw,
+  Smartphone,
 } from 'lucide-react';
 
 interface EntryPortalProps {
@@ -28,6 +31,8 @@ interface EntryPortalProps {
   connectedSchools: School[];
   availableSchools: School[];
   adminUser: AdminUser | null;
+  onRefreshSchools?: () => Promise<void>;
+  isRefreshing?: boolean;
 }
 
 export const EntryPortal: React.FC<EntryPortalProps> = ({
@@ -38,23 +43,61 @@ export const EntryPortal: React.FC<EntryPortalProps> = ({
   connectedSchools,
   availableSchools,
   adminUser,
+  onRefreshSchools,
+  isRefreshing = false,
 }) => {
   const [quickCode, setQuickCode] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [serverSchools, setServerSchools] = useState<School[]>([]);
+  const [isSearchingServer, setIsSearchingServer] = useState(false);
+
+  // Live debounced server search (queries server directly so schools created on phone appear instantly when searching on PC)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setServerSchools([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearchingServer(true);
+        const results = await api.searchSchools(searchQuery, selectedRegion);
+        setServerSchools(results);
+      } catch {
+        // ignore
+      } finally {
+        setIsSearchingServer(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedRegion]);
+
+  // Combine available schools and server search results
+  const combinedSchools = useMemo(() => {
+    const map = new Map<string, School>();
+    serverSchools.forEach((s) => map.set(s.id, s));
+    availableSchools.forEach((s) => {
+      if (!map.has(s.id)) {
+        map.set(s.id, s);
+      }
+    });
+    return Array.from(map.values());
+  }, [availableSchools, serverSchools]);
 
   // Extract unique regions for filter
   const regions = useMemo(() => {
     const set = new Set<string>();
-    availableSchools.forEach((s) => {
+    combinedSchools.forEach((s) => {
       if (s.region) {
         const primary = s.region.split(',')[0].trim();
         if (primary) set.add(primary);
       }
     });
     return Array.from(set);
-  }, [availableSchools]);
+  }, [combinedSchools]);
 
   // Filtered schools matching search
   const filteredSchools = useMemo(() => {
@@ -62,7 +105,7 @@ export const EntryPortal: React.FC<EntryPortalProps> = ({
     const cleanDigits = q.replace(/\D/g, '');
     const cleanAlphaNum = q.replace(/[^a-z0-9]/g, '');
 
-    return availableSchools.filter((s) => {
+    return combinedSchools.filter((s) => {
       // Region filter
       if (selectedRegion !== 'all' && !s.region.toLowerCase().includes(selectedRegion.toLowerCase())) {
         return false;
@@ -87,7 +130,7 @@ export const EntryPortal: React.FC<EntryPortalProps> = ({
         (cleanDigits && sCode.includes(cleanDigits))
       );
     });
-  }, [availableSchools, searchQuery, selectedRegion]);
+  }, [combinedSchools, searchQuery, selectedRegion]);
 
   const handleQuickJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,16 +170,28 @@ export const EntryPortal: React.FC<EntryPortalProps> = ({
 
       {/* QUICK LIVE SEARCH BAR FOR SCHOOLS (Fixes: "boshqa odam qidirsa men ochgan yangi maktab unda chiqmayapti") */}
       <div className="mx-0 sm:mx-4 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 rounded-3xl p-4 sm:p-7 text-white shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Search className="w-5 h-5 text-blue-300" />
               <h2 className="text-base sm:text-xl font-bold tracking-tight">
                 Maktabni qidirish
               </h2>
               <span className="text-xs bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-full font-medium">
-                {availableSchools.length} ta maktab
+                {combinedSchools.length} ta maktab
               </span>
+              {onRefreshSchools && (
+                <button
+                  type="button"
+                  onClick={onRefreshSchools}
+                  disabled={isRefreshing}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold cursor-pointer transition-all border border-white/20 active:scale-95"
+                  title="Serverdagi eng yangi maktablarni tekshirish va yangilash"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-200' : 'text-blue-200'}`} />
+                  <span>{isRefreshing ? "Yangilanmoqda..." : "Yangilash"}</span>
+                </button>
+              )}
             </div>
             <p className="text-xs text-blue-200 leading-relaxed">
               Maktab nomi, raqami (masalan, <span className="font-bold underline text-white">40</span>), viloyati yoki kodi bo'yicha qidiring:
@@ -144,10 +199,22 @@ export const EntryPortal: React.FC<EntryPortalProps> = ({
           </div>
         </div>
 
-        {/* Search input with live clear */}
+        {/* Sync guidance banner */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-950/40 border border-blue-400/20 text-[11px] sm:text-xs text-blue-100">
+          <Smartphone className="w-4 h-4 text-emerald-300 shrink-0" />
+          <span>
+            <b>Telefon va kompyuter:</b> Telefonda yangi maktab ochganingizda u server orqali bir necha soniyada avtomatik ro'yxatda paydo bo'ladi. Agar ko'rinmasa, <span className="underline font-bold">«Yangilash»</span> tugmasini bosing yoki maktab kodini kiriting.
+          </span>
+        </div>
+
+        {/* Search input with live clear & server searching indicator */}
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-            <Search className="w-5 h-5 text-blue-500" />
+            {isSearchingServer ? (
+              <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
+            ) : (
+              <Search className="w-5 h-5 text-blue-500" />
+            )}
           </div>
           <input
             type="text"

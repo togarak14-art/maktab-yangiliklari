@@ -244,6 +244,16 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
               </div>
             </div>
 
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                Barcha qurilmalarda ko'rinadi (Kompyuter va telefon)!
+              </div>
+              <p className="leading-relaxed">
+                Maktab markaziy serverga muvaffaqiyatli saqlandi. Kompyuteringizda yoki boshqa istalgan qurilmada qidiruv maydoniga maktab nomi, raqami yoki <b>{createdSchool.code}</b> kodini kiritib kirishingiz mumkin.
+              </p>
+            </div>
+
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
               <span className="font-bold">Eslatma:</span> Yangi maktabingiz profili toza va bo'sh holda ochiladi. Birinchi yangilikni administrator paneli orqali e'lon qilishingiz mumkin.
             </div>
@@ -271,14 +281,23 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
                 <KeyRound className="w-3.5 h-3.5 text-blue-600" />
                 Maktab yaratish maxsus ruxsat kodi *
               </label>
-              <input
-                type="password"
-                required
-                placeholder="Maxsus ruxsat kodini kiriting"
-                value={creationCode}
-                onChange={(e) => setCreationCode(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm font-mono tracking-wider border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Maxsus ruxsat kodini kiriting"
+                  value={creationCode}
+                  onChange={(e) => setCreationCode(e.target.value)}
+                  className="w-full px-3.5 py-2 pr-10 text-sm font-mono tracking-wider border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <p className="text-[11px] text-slate-500">
                 Faqat maxsus ruxsat kodiga ega bo'lgan mas'ullar yangi maktab ochishi mumkin.
               </p>

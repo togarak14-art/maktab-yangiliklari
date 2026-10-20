@@ -69,10 +69,61 @@ export default function App() {
     type: 'image',
   });
 
-  // Initial Data Fetch
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Initial Data Fetch & Real-time Auto-Refresh
   useEffect(() => {
     initApp();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSchools();
+      }
+    };
+    window.addEventListener('focus', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Auto-poll every 5 seconds so phone-to-computer updates appear instantly
+    const pollInterval = setInterval(() => {
+      refreshSchools();
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('focus', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(pollInterval);
+    };
   }, []);
+
+  const refreshSchools = async () => {
+    try {
+      const allSchools = await api.getSchools();
+      setSchools((prev) => {
+        const prevIds = prev.map((s) => `${s.id}-${s.newsCount || 0}`).join(',');
+        const newIds = allSchools.map((s) => `${s.id}-${s.newsCount || 0}`).join(',');
+        if (prevIds !== newIds) {
+          return allSchools;
+        }
+        return prev;
+      });
+
+      // Also if user has a phone number registered, sync connected schools
+      const profile = api.getUserProfile();
+      if (profile.phone && profile.phone.replace(/\D/g, '').length >= 7) {
+        const phoneSchools = await api.getSchoolsByPhone(profile.phone);
+        if (phoneSchools.length > 0) {
+          const newConnected = Array.from(new Set([...profile.connectedSchoolIds, ...phoneSchools.map((s) => s.id)]));
+          if (newConnected.length !== profile.connectedSchoolIds.length) {
+            const updated = { ...profile, connectedSchoolIds: newConnected };
+            setUserProfile(updated);
+            api.saveUserProfile(updated);
+          }
+        }
+      }
+    } catch {
+      // background refresh error, ignore
+    }
+  };
 
   const initApp = async () => {
     setLoadingSchools(true);
@@ -288,6 +339,12 @@ export default function App() {
             connectedSchools={connectedSchools}
             availableSchools={schools}
             adminUser={adminUser}
+            onRefreshSchools={async () => {
+              setIsRefreshing(true);
+              await refreshSchools();
+              setTimeout(() => setIsRefreshing(false), 500);
+            }}
+            isRefreshing={isRefreshing}
           />
         ) : (
           /* School News and Info View */

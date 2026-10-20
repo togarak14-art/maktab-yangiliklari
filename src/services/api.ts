@@ -78,11 +78,14 @@ export const api = {
         const serverIds = new Set(serverSchools.map((s) => s.id));
         const unsynced = localSchools.filter((s) => !serverIds.has(s.id) && s.id !== 'school-25-demo');
         if (unsynced.length > 0) {
-          safeFetch('/api/schools/sync', {
+          const syncRes = await safeFetch('/api/schools/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ schools: unsynced }),
-          }).catch(() => {});
+          });
+          if (syncRes.ok && syncRes.data?.schools) {
+            return syncRes.data.schools;
+          }
         }
       } catch (e) {
         // Ignore background sync errors
@@ -92,6 +95,16 @@ export const api = {
     }
     // Fallback to local storage
     return localDb.getSchools();
+  },
+
+  async getSchoolsByPhone(phone: string): Promise<School[]> {
+    const clean = phone.replace(/\D/g, '');
+    if (!clean || clean.length < 7) return [];
+    const result = await safeFetch(`/api/user/schools-by-phone/${clean}`);
+    if (result.ok && result.data?.schools) {
+      return result.data.schools;
+    }
+    return [];
   },
 
   async searchSchools(query: string = '', region?: string): Promise<School[]> {
@@ -161,10 +174,20 @@ export const api = {
 
     if (result.ok && result.data?.school) {
       this.setToken(result.data.token);
+      // Cache locally
+      try {
+        localDb.saveExternalSchool(result.data.school);
+      } catch (e) {}
       return result.data;
     }
 
-    // Fallback to local storage (e.g. inside HTML-to-APK or static hosting)
+    // If server returned a business/validation error (e.g. invalid code, duplicate login):
+    // Throw real error so caller and UI know what failed instead of secretly saving locally
+    if (result.error && !result.error.includes('Aloqa xatosi') && !result.error.includes('Failed to fetch') && !result.error.includes('502') && !result.error.includes('503')) {
+      throw new Error(result.error);
+    }
+
+    // Fallback to local storage (e.g. inside true offline HTML-to-APK or static hosting)
     const localResult = localDb.createSchool(payload);
     this.setToken(localResult.token);
 

@@ -8,7 +8,25 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+function resolvePort(): number {
+  const portArgIndex = process.argv.indexOf('--port');
+  if (portArgIndex !== -1 && process.argv[portArgIndex + 1]) {
+    const parsed = parseInt(process.argv[portArgIndex + 1], 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  if (process.env.DEFAULT_APP_PORT) {
+    const parsed = parseInt(process.env.DEFAULT_APP_PORT, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  // If PORT env var is set to 8080 (nginx), do not use it; use 3000 instead.
+  if (process.env.PORT && process.env.PORT !== '8080') {
+    const parsed = parseInt(process.env.PORT, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return 3000;
+}
+
+const PORT = resolvePort();
 const DATA_DIR = path.resolve(__dirname, 'data');
 const UPLOADS_DIR = path.resolve(__dirname, 'uploads');
 const DB_FILE = path.join(DATA_DIR, 'maktab_db.json');
@@ -266,6 +284,18 @@ let db = loadDB();
 
 // Express app setup
 const app = express();
+
+// Enable CORS for all origins, methods, and headers (ensures mobile devices, Safari, APKs can access API seamlessly)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -434,7 +464,43 @@ app.post('/api/schools/sync', (req, res) => {
     saveDB(db);
   }
 
-  res.json({ success: true, addedCount, totalSchools: db.schools.length });
+  res.json({
+    success: true,
+    addedCount,
+    totalSchools: db.schools.length,
+    schools: db.schools.map(sanitizeSchool),
+  });
+});
+
+// GET /api/user/schools-by-phone/:phone - Find schools associated with a phone number (creator or joined member)
+app.get('/api/user/schools-by-phone/:phone', (req, res) => {
+  const cleanPhone = (req.params.phone || '').replace(/\D/g, '');
+  if (!cleanPhone || cleanPhone.length < 7) {
+    return res.json({ schools: [] });
+  }
+
+  // Find schools created by this phone OR where member joined with this phone
+  const matchedSchoolIds = new Set<string>();
+
+  for (const s of db.schools) {
+    const sPhone = (s.phone || '').replace(/\D/g, '');
+    if (sPhone && (sPhone.endsWith(cleanPhone) || cleanPhone.endsWith(sPhone))) {
+      matchedSchoolIds.add(s.id);
+    }
+  }
+
+  for (const m of db.members) {
+    const mPhone = (m.phone || '').replace(/\D/g, '');
+    if (mPhone && (mPhone.endsWith(cleanPhone) || cleanPhone.endsWith(mPhone))) {
+      matchedSchoolIds.add(m.schoolId);
+    }
+  }
+
+  const matchingSchools = db.schools
+    .filter((s) => matchedSchoolIds.has(s.id))
+    .map(sanitizeSchool);
+
+  res.json({ schools: matchingSchools });
 });
 
 // POST /api/schools - Create a brand new school

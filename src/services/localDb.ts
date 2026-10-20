@@ -227,6 +227,18 @@ export const localDb = {
     return { school: newSchool, token, admin };
   },
 
+  saveExternalSchool(school: School): void {
+    initStorage();
+    const schools = getStored<any[]>(STORAGE_KEY_SCHOOLS, []);
+    const idx = schools.findIndex((s) => s.id === school.id);
+    if (idx >= 0) {
+      schools[idx] = { ...schools[idx], ...school };
+    } else {
+      schools.unshift(school);
+    }
+    setStored(STORAGE_KEY_SCHOOLS, schools);
+  },
+
   updateSchool(schoolId: string, payload: Partial<School>): School {
     const schools = getStored<any[]>(STORAGE_KEY_SCHOOLS, []);
     const idx = schools.findIndex((s) => s.id === schoolId);

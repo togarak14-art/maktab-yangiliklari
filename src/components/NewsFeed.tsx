@@ -15,7 +15,9 @@ import {
   Share2,
   SlidersHorizontal,
   Sparkles,
+  Video,
 } from 'lucide-react';
+import { isVideoSource, getYouTubeEmbedUrl } from '../utils/mediaUtils';
 
 interface NewsFeedProps {
   school: School;
@@ -189,7 +191,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({
                 className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-shadow duration-200 overflow-hidden"
               >
                 {/* News Card Header */}
-                <div className="p-5 sm:p-6 pb-3">
+                <div className="p-4 sm:p-6 pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1.5">
                       {/* Quiet Unboxed Metadata (Zero-Pill discipline from frontend-design) */}
@@ -263,66 +265,117 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({
                 </div>
 
                 {/* Media Section: Photos & Video */}
-                {/* Images Gallery */}
-                {item.images.length > 0 && (
-                  <div className="px-5 sm:px-6 py-2">
-                    {item.images.length === 1 ? (
-                      <div
-                        onClick={() => onOpenMediaViewer('image', item.images, 0, null, item.title)}
-                        className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 cursor-pointer group shadow-inner"
-                      >
-                        <img
-                          src={item.images[0]}
-                          alt={item.title}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <span className="px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5">
-                            <Maximize2 className="w-3.5 h-3.5" />
-                            Kattalashtirish
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {item.images.map((img, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() => onOpenMediaViewer('image', item.images, idx, null, item.title)}
-                            className="relative aspect-4/3 rounded-xl overflow-hidden bg-slate-100 cursor-pointer group shadow-inner"
-                          >
-                            <img
-                              src={img}
-                              alt={`${item.title} - ${idx + 1}`}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <span className="p-2 rounded-full bg-black/60 text-white">
-                                <Maximize2 className="w-4 h-4" />
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {(() => {
+                  const itemVideos: string[] = [];
+                  if (item.videoUrl) itemVideos.push(item.videoUrl);
+                  if (item.videos && Array.isArray(item.videos)) {
+                    for (const v of item.videos) {
+                      if (v && !itemVideos.includes(v)) itemVideos.push(v);
+                    }
+                  }
+                  for (const media of item.images || []) {
+                    if (isVideoSource(media) && !itemVideos.includes(media)) {
+                      itemVideos.push(media);
+                    }
+                  }
 
-                {/* Video player embedded */}
-                {item.videoUrl && (
-                  <div className="px-5 sm:px-6 py-2">
-                    <div className="relative aspect-video rounded-xl overflow-hidden bg-black shadow-inner">
-                      <video
-                        src={item.videoUrl}
-                        controls
-                        playsInline
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  </div>
-                )}
+                  const itemImages = (item.images || []).filter((img) => !isVideoSource(img));
+
+                  return (
+                    <>
+                      {/* Video Player(s) */}
+                      {itemVideos.length > 0 && (
+                        <div className="px-4 sm:px-6 py-2 space-y-3">
+                          {itemVideos.map((vid, vidIdx) => {
+                            const ytEmbed = getYouTubeEmbedUrl(vid);
+                            return (
+                              <div
+                                key={vidIdx}
+                                className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-md border border-slate-200 group"
+                              >
+                                {ytEmbed ? (
+                                  <iframe
+                                    src={ytEmbed}
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    title={`${item.title} - Video ${vidIdx + 1}`}
+                                  />
+                                ) : (
+                                  <>
+                                    <video
+                                      src={vid}
+                                      controls
+                                      playsInline
+                                      preload="metadata"
+                                      className="w-full h-full object-contain bg-black"
+                                    >
+                                      Sizning qurilmangiz ushbu videoni ijro etishni qo'llab-quvvatlamaydi.
+                                    </video>
+                                    <button
+                                      onClick={() => onOpenMediaViewer('video', undefined, undefined, vid, item.title)}
+                                      className="absolute top-2.5 right-2.5 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+                                      title="Kattalashtirish"
+                                    >
+                                      <Maximize2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Images Gallery */}
+                      {itemImages.length > 0 && (
+                        <div className="px-4 sm:px-6 py-2">
+                          {itemImages.length === 1 ? (
+                            <div
+                              onClick={() => onOpenMediaViewer('image', itemImages, 0, null, item.title)}
+                              className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 cursor-pointer group shadow-xs border border-slate-200/80"
+                            >
+                              <img
+                                src={itemImages[0]}
+                                alt={item.title}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <span className="px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5">
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                  Kattalashtirish
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {itemImages.map((img, idx) => (
+                                <div
+                                  key={idx}
+                                  onClick={() => onOpenMediaViewer('image', itemImages, idx, null, item.title)}
+                                  className="relative aspect-4/3 rounded-xl overflow-hidden bg-slate-100 cursor-pointer group shadow-xs border border-slate-200/80"
+                                >
+                                  <img
+                                    src={img}
+                                    alt={`${item.title} - ${idx + 1}`}
+                                    referrerPolicy="no-referrer"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="p-2 rounded-full bg-black/60 text-white">
+                                      <Maximize2 className="w-4 h-4" />
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* News Card Footer: Author and Share */}
                 <div className="px-5 sm:px-6 py-3.5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">

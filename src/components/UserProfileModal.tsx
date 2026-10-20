@@ -76,31 +76,31 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-800 px-5 sm:px-6 py-4 sm:py-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg shrink-0">
               {name ? name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
             </div>
             <div>
               <h2 className="text-base font-bold">{name || 'Foydalanuvchi profili'}</h2>
-              <p className="text-xs text-blue-200">
+              <p className="text-[11px] sm:text-xs text-blue-200">
                 {role === 'student' ? "O'quvchi" : role === 'parent' ? "Ota-ona" : role === 'teacher' ? "O'qituvchi" : "Mehmon"}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {savedNotice && (
             <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-600" />

@@ -237,11 +237,12 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans pb-20 sm:pb-8">
+    <div className="min-h-screen min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col font-sans pb-24 sm:pb-8">
       {/* Top Header */}
       <Header
         currentSchool={currentSchool}
         connectedSchools={connectedSchools}
+        allSchools={schools}
         onSelectSchool={handleSelectSchool}
         onOpenCreateSchool={() => setCreateSchoolOpen(true)}
         onOpenJoinSchool={() => {
@@ -268,7 +269,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {loadingSchools ? (
           <div className="py-24 text-center">
             <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -292,36 +293,36 @@ export default function App() {
           /* School News and Info View */
           <div className="space-y-6">
             {/* Quick Hero Banner / Switcher Bar */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm font-bold text-lg">
-                  {currentSchool.number || <SchoolIcon className="w-6 h-6" />}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 shadow-xs">
+              <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm font-bold text-base sm:text-lg">
+                  {currentSchool.number || <SchoolIcon className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-lg font-bold text-slate-900 tracking-tight truncate">
                       {currentSchool.name}
                     </h2>
                     {isCurrentAdmin && (
-                      <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                        <ShieldCheck className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md shrink-0">
+                        <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         Admin
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                    <span>{currentSchool.region}</span>
-                    <span>·</span>
+                  <p className="text-[11px] sm:text-xs text-slate-500 flex flex-wrap items-center gap-1.5 mt-0.5">
+                    <span className="truncate">{currentSchool.region}</span>
+                    <span className="hidden min-[400px]:inline">·</span>
                     <span className="text-blue-700 font-medium">Ulanish kodi: <span className="font-mono font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">{currentSchool.code}</span></span>
                   </p>
                 </div>
               </div>
 
               {/* View switch tabs */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-stretch sm:self-auto">
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full md:w-auto shrink-0">
                 <button
                   onClick={() => setActiveTab('news')}
-                  className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  className={`flex-1 md:flex-initial px-3 sm:px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer text-center ${
                     activeTab === 'news'
                       ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -331,7 +332,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setActiveTab('school_info')}
-                  className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  className={`flex-1 md:flex-initial px-3 sm:px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer text-center ${
                     activeTab === 'school_info'
                       ? 'bg-white text-blue-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
@@ -397,10 +398,13 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="sm:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-3 py-2 flex items-center justify-around shadow-lg">
+      <div
+        className="sm:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 pt-2 flex items-center justify-around shadow-lg"
+        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         <button
           onClick={() => setShowPortal(true)}
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold cursor-pointer py-1 px-2 ${
             showPortal ? 'text-blue-600' : 'text-slate-500'
           }`}
         >
@@ -413,7 +417,7 @@ export default function App() {
               setShowPortal(false);
               setActiveTab('news');
             }}
-            className={`flex flex-col items-center gap-1 text-[10px] font-semibold cursor-pointer ${
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold cursor-pointer py-1 px-2 ${
               !showPortal && activeTab === 'news' ? 'text-blue-600' : 'text-slate-500'
             }`}
           >
@@ -426,21 +430,21 @@ export default function App() {
             setPrefillJoinCode('');
             setJoinSchoolOpen(true);
           }}
-          className="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-500 cursor-pointer"
+          className="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-slate-500 cursor-pointer py-1 px-2"
         >
           <LinkIcon className="w-5 h-5 text-indigo-600" />
           <span>Qo‘shilish</span>
         </button>
         <button
           onClick={() => setCreateSchoolOpen(true)}
-          className="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-500 cursor-pointer"
+          className="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-slate-500 cursor-pointer py-1 px-2"
         >
           <PlusCircle className="w-5 h-5 text-emerald-600" />
           <span>Yaratish</span>
         </button>
         <button
           onClick={() => setProfileOpen(true)}
-          className="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-500 cursor-pointer"
+          className="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-slate-500 cursor-pointer py-1 px-2"
         >
           <User className="w-5 h-5" />
           <span>Profil</span>

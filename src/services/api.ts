@@ -70,10 +70,59 @@ export const api = {
   async getSchools(): Promise<School[]> {
     const result = await safeFetch('/api/schools');
     if (result.ok && result.data?.schools) {
-      return result.data.schools;
+      const serverSchools: School[] = result.data.schools;
+
+      // Check if localDb has any schools not yet present on server and sync them
+      try {
+        const localSchools = localDb.getSchools();
+        const serverIds = new Set(serverSchools.map((s) => s.id));
+        const unsynced = localSchools.filter((s) => !serverIds.has(s.id) && s.id !== 'school-25-demo');
+        if (unsynced.length > 0) {
+          safeFetch('/api/schools/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schools: unsynced }),
+          }).catch(() => {});
+        }
+      } catch (e) {
+        // Ignore background sync errors
+      }
+
+      return serverSchools;
     }
     // Fallback to local storage
     return localDb.getSchools();
+  },
+
+  async searchSchools(query: string = '', region?: string): Promise<School[]> {
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    if (region && region !== 'all') params.append('region', region);
+
+    const result = await safeFetch(`/api/schools/search?${params.toString()}`);
+    if (result.ok && result.data?.schools) {
+      return result.data.schools;
+    }
+
+    // Fallback search in local storage
+    const all = localDb.getSchools();
+    const q = query.trim().toLowerCase();
+    const reg = (region || '').trim().toLowerCase();
+    const cleanDigits = q.replace(/\D/g, '');
+
+    return all.filter((s) => {
+      if (reg && reg !== 'all' && !s.region.toLowerCase().includes(reg)) {
+        return false;
+      }
+      if (!q) return true;
+
+      const nameMatch = s.name.toLowerCase().includes(q);
+      const regionMatch = s.region.toLowerCase().includes(q);
+      const directorMatch = s.director.toLowerCase().includes(q);
+      const numberMatch = s.number.toLowerCase() === q || (cleanDigits && s.number === cleanDigits);
+      const codeMatch = s.code.toLowerCase().includes(q) || (cleanDigits && s.code.includes(cleanDigits));
+      return nameMatch || regionMatch || directorMatch || numberMatch || codeMatch;
+    });
   },
 
   async getSchool(id: string): Promise<School> {
@@ -85,7 +134,7 @@ export const api = {
   },
 
   async getSchoolByCode(code: string): Promise<School> {
-    const clean = code.trim().toUpperCase();
+    const clean = code.trim();
     const result = await safeFetch(`/api/schools/by-code/${encodeURIComponent(clean)}`);
     if (result.ok && result.data?.school) {
       return result.data.school;
@@ -118,6 +167,14 @@ export const api = {
     // Fallback to local storage (e.g. inside HTML-to-APK or static hosting)
     const localResult = localDb.createSchool(payload);
     this.setToken(localResult.token);
+
+    // Try syncing local creation to server in background if possible
+    safeFetch('/api/schools/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schools: [localResult.school] }),
+    }).catch(() => {});
+
     return localResult;
   },
 
@@ -219,6 +276,7 @@ export const api = {
       isImportant: boolean;
       images: string[];
       videoUrl?: string | null;
+      videos?: string[];
       authorName?: string;
       authorRole?: string;
     }
@@ -249,6 +307,7 @@ export const api = {
       isImportant: boolean;
       images: string[];
       videoUrl: string | null;
+      videos: string[];
     }>
   ): Promise<NewsItem> {
     const token = this.getToken();
@@ -283,7 +342,7 @@ export const api = {
   async uploadFiles(
     files: File[],
     onProgress?: (percent: number) => void
-  ): Promise<{ urls: string[]; files: Array<{ url: string; originalName: string; size: number }> }> {
+  ): Promise<{ urls: string[]; files: Array<{ url: string; originalName: string; size: number; type?: 'video' | 'image' }> }> {
     try {
       // First attempt server upload
       const formData = new FormData();

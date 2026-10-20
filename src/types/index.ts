@@ -42,6 +42,7 @@ export interface NewsItem {
   isImportant: boolean;
   images: string[];
   videoUrl?: string | null;
+  videos?: string[];
   authorName: string;
   authorRole: string;
   createdAt: string;

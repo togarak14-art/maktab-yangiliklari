@@ -72,7 +72,8 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     >
       {/* Top action bar */}
       <div
-        className="absolute top-3 inset-x-3 sm:inset-x-6 flex items-center justify-between text-white z-20 pointer-events-auto"
+        className="absolute inset-x-3 sm:inset-x-6 flex items-center justify-between text-white z-20 pointer-events-auto"
+        style={{ top: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="max-w-[70%] truncate text-xs sm:text-sm font-medium text-slate-200">
@@ -124,41 +125,62 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             )}
           </div>
         ) : mediaType === 'video' && videoUrl ? (
-          <div className="relative w-full max-w-3xl rounded-2xl overflow-hidden bg-black shadow-2xl">
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              autoPlay
-              playsInline
-              className="w-full max-h-[75vh] object-contain"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-            />
-
-            {/* Custom overlay controls */}
-            <div className="p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex items-center justify-between gap-3 text-white">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={togglePlay}
-                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                </button>
-                <button
-                  onClick={toggleMute}
-                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
-                >
-                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
+          <div className="relative w-full max-w-4xl rounded-2xl overflow-hidden bg-black shadow-2xl">
+            {videoUrl.includes('youtube') || videoUrl.includes('youtu.be') ? (
+              <div className="relative aspect-video w-full max-h-[80vh]">
+                <iframe
+                  src={
+                    videoUrl.includes('embed')
+                      ? videoUrl
+                      : `https://www.youtube.com/embed/${
+                          videoUrl.match(/(?:watch\?.*v=|embed\/|shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1] || ''
+                        }?autoplay=1&rel=0`
+                  }
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  title={title || "Video ko'rish"}
+                />
               </div>
+            ) : (
+              <>
+                <video
+                  ref={videoRef}
+                  src={videoUrl}
+                  autoPlay
+                  controls
+                  playsInline
+                  className="w-full max-h-[75vh] object-contain"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                />
 
-              <button
-                onClick={handleFullscreen}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
-              >
-                <Maximize className="w-4 h-4" />
-              </button>
-            </div>
+                {/* Custom overlay controls */}
+                <div className="p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex items-center justify-between gap-3 text-white">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={togglePlay}
+                      className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                    >
+                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={toggleMute}
+                      className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleFullscreen}
+                    className="p-2 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                  >
+                    <Maximize className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ) : null}
       </div>

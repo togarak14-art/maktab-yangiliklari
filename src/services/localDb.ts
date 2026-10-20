@@ -147,10 +147,24 @@ export const localDb = {
   },
 
   getSchoolByCode(code: string): School {
-    const clean = code.trim().toUpperCase();
+    const raw = code.trim();
+    const clean = raw.toUpperCase().replace(/\s+/g, '');
+    const cleanAlphaNum = clean.replace(/[^A-Z0-9]/g, '');
+    const cleanDigits = raw.replace(/\D/g, '');
     const schools = this.getSchools();
-    const s = schools.find((x) => x.code.toUpperCase() === clean);
-    if (!s) throw new Error(`"${code}" kodli maktab topilmadi. Kodni tekshirib qayta kiriting.`);
+
+    let s = schools.find((x) => x.code.toUpperCase() === clean);
+    if (!s && cleanAlphaNum) {
+      s = schools.find((x) => x.code.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanAlphaNum);
+    }
+    if (!s && cleanDigits) {
+      s = schools.find((x) => x.code.replace(/\D/g, '') === cleanDigits || x.number === cleanDigits);
+    }
+    if (!s) {
+      const q = raw.toLowerCase();
+      s = schools.find((x) => (x.number && x.number.toLowerCase() === q) || x.name.toLowerCase().includes(q));
+    }
+    if (!s) throw new Error(`"${code}" bo'yicha maktab topilmadi. Kod yoki maktab raqamini tekshirib qayta kiriting.`);
     return s;
   },
 
@@ -301,6 +315,7 @@ export const localDb = {
       isImportant: Boolean(payload.isImportant),
       images: payload.images || [],
       videoUrl: payload.videoUrl || null,
+      videos: Array.isArray(payload.videos) ? payload.videos : payload.videoUrl ? [payload.videoUrl] : [],
       authorName: payload.authorName || school.director,
       authorRole: payload.authorRole || "Maktab ma'muriyati",
       createdAt: new Date().toISOString(),
@@ -346,11 +361,15 @@ export const localDb = {
   async uploadFiles(
     files: File[],
     onProgress?: (percent: number) => void
-  ): Promise<{ urls: string[]; files: Array<{ url: string; originalName: string; size: number }> }> {
-    const results: Array<{ url: string; originalName: string; size: number }> = [];
+  ): Promise<{ urls: string[]; files: Array<{ url: string; originalName: string; size: number; type: 'video' | 'image' }> }> {
+    const results: Array<{ url: string; originalName: string; size: number; type: 'video' | 'image' }> = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      const isVideo =
+        (file.type && file.type.toLowerCase().startsWith('video/')) ||
+        /\.(mp4|webm|mov|mkv|avi|3gp|m4v|ogg|ogv|ts)$/i.test(file.name);
+
       // Convert to base64 Data URL for standalone APK / client offline support
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -363,6 +382,7 @@ export const localDb = {
         url: dataUrl,
         originalName: file.name,
         size: file.size,
+        type: isVideo ? 'video' : 'image',
       });
 
       if (onProgress) {

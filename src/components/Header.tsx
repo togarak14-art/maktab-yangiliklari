@@ -12,11 +12,13 @@ import {
   LogOut,
   Sliders,
   Radio,
+  Search,
 } from 'lucide-react';
 
 interface HeaderProps {
   currentSchool: School | null;
   connectedSchools: School[];
+  allSchools?: School[];
   onSelectSchool: (school: School) => void;
   onOpenCreateSchool: () => void;
   onOpenJoinSchool: () => void;
@@ -36,6 +38,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   currentSchool,
   connectedSchools,
+  allSchools = [],
   onSelectSchool,
   onOpenCreateSchool,
   onOpenJoinSchool,
@@ -52,31 +55,52 @@ export const Header: React.FC<HeaderProps> = ({
   onTabChange,
 }) => {
   const [schoolMenuOpen, setSchoolMenuOpen] = React.useState(false);
+  const [dropdownSearch, setDropdownSearch] = React.useState('');
   const isCurrentAdmin = adminUser && currentSchool && adminUser.schoolId === currentSchool.id;
 
+  // Filter schools for dropdown
+  const filteredDropdownSchools = React.useMemo(() => {
+    const q = dropdownSearch.trim().toLowerCase();
+    const source = q ? allSchools : (connectedSchools.length > 0 ? connectedSchools : allSchools);
+    if (!q) return source;
+    return allSchools.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.region.toLowerCase().includes(q) ||
+        s.code.toLowerCase().includes(q) ||
+        (s.number && s.number.toLowerCase() === q)
+    );
+  }, [allSchools, connectedSchools, dropdownSearch]);
+
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <header
+      className="w-full sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs"
+      style={{ paddingTop: !currentSchool ? 'env(safe-area-inset-top, 0px)' : undefined }}
+    >
       {/* Top Banner for School Context */}
       {currentSchool && (
-        <div className="bg-blue-900 text-white text-xs px-4 py-1.5 flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-hidden">
+        <div
+          className="w-full bg-blue-900 text-white text-[11px] sm:text-xs px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 overflow-hidden"
+          style={{ paddingTop: 'calc(0.375rem + env(safe-area-inset-top, 0px))' }}
+        >
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
             <SchoolIcon className="w-3.5 h-3.5 shrink-0 text-blue-300" />
             <span className="font-medium truncate">{currentSchool.name}</span>
             <span className="hidden sm:inline text-blue-300">·</span>
             <span className="hidden sm:inline text-blue-200">Kodi: <span className="font-mono font-bold tracking-wider bg-blue-800/80 px-1.5 py-0.5 rounded text-white">{currentSchool.code}</span></span>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 text-[10px] sm:text-[11px]">
             {isCurrentAdmin ? (
-              <span className="flex items-center gap-1 text-emerald-300 font-medium text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Maktab administratori
+              <span className="flex items-center gap-1 text-emerald-300 font-medium whitespace-nowrap">
+                <ShieldCheck className="w-3 h-3" />
+                Admin
               </span>
             ) : (
               <button
                 onClick={onOpenAdminLogin}
-                className="text-[11px] text-blue-200 hover:text-white underline cursor-pointer"
+                className="text-blue-200 hover:text-white underline cursor-pointer whitespace-nowrap"
               >
-                Admin sifatida kirish
+                Admin kirish
               </button>
             )}
           </div>
@@ -84,18 +108,18 @@ export const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Main Top Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4 w-full">
           {/* Zone 1: Brand Wordmark */}
           <div
             onClick={onOpenPortal}
-            className="flex items-center gap-3 shrink-0 cursor-pointer group"
+            className="flex items-center gap-2 sm:gap-3 shrink-0 cursor-pointer group min-w-0"
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm group-hover:bg-blue-700 transition-colors">
-              <GraduationCap className="w-6 h-6" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm group-hover:bg-blue-700 transition-colors shrink-0">
+              <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-lg font-bold text-slate-900 tracking-tight whitespace-nowrap block group-hover:text-blue-700 transition-colors">
+            <div className="hidden min-[460px]:block min-w-0">
+              <span className="text-sm sm:text-lg font-bold text-slate-900 tracking-tight truncate block group-hover:text-blue-700 transition-colors">
                 Maktab Yangiliklari
               </span>
               <p className="text-[10px] text-slate-500 font-medium leading-none hidden sm:block">
@@ -105,16 +129,16 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* School Selector Dropdown */}
-          <div className="relative">
+          <div className="relative min-w-0 max-w-[135px] sm:max-w-[200px]">
             <button
               onClick={() => setSchoolMenuOpen(!schoolMenuOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-xs font-medium text-slate-700 transition-colors"
+              className="w-full flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-white text-xs font-medium text-slate-700 transition-colors"
             >
-              <SchoolIcon className="w-4 h-4 text-blue-600" />
-              <span className="max-w-[130px] sm:max-w-[180px] truncate">
+              <SchoolIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="truncate text-[11px] sm:text-xs">
                 {currentSchool ? currentSchool.name : 'Maktabni tanlang'}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-auto" />
             </button>
 
             {schoolMenuOpen && (
@@ -123,32 +147,56 @@ export const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setSchoolMenuOpen(false)}
                 />
-                <div className="absolute left-0 mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
-                  <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Ulangan maktablar
+                <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:left-0 sm:top-auto sm:mt-1.5 sm:w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
+                  {/* Search input in dropdown */}
+                  <div className="px-3 pb-2 pt-1">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Maktab nomi, raqami yoki kodi..."
+                        value={dropdownSearch}
+                        onChange={(e) => setDropdownSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium"
+                      />
+                    </div>
                   </div>
-                  {connectedSchools.length === 0 ? (
-                    <div className="px-3 py-3 text-xs text-slate-500 text-center">
-                      Hali maktabga ulanmadingiz
+
+                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>{dropdownSearch ? 'Qidiruv natijalari' : (connectedSchools.length > 0 ? 'Ulangan maktablar' : 'Mavjud maktablar')}</span>
+                    <span className="text-[10px] text-slate-400">{filteredDropdownSchools.length} ta</span>
+                  </div>
+
+                  {filteredDropdownSchools.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-slate-500 text-center">
+                      «{dropdownSearch}» bo'yicha maktab topilmadi
                     </div>
                   ) : (
                     <div className="max-h-60 overflow-y-auto">
-                      {connectedSchools.map((school) => (
+                      {filteredDropdownSchools.map((school) => (
                         <button
                           key={school.id}
                           onClick={() => {
                             onSelectSchool(school);
                             setSchoolMenuOpen(false);
+                            setDropdownSearch('');
                           }}
-                          className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs hover:bg-blue-50 transition-colors ${
+                          className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs hover:bg-blue-50 transition-colors cursor-pointer ${
                             currentSchool?.id === school.id ? 'bg-blue-50/80 font-semibold text-blue-700' : 'text-slate-700'
                           }`}
                         >
                           <div className="truncate pr-2">
-                            <div className="truncate font-medium">{school.name}</div>
-                            <div className="text-[10px] text-slate-400">{school.region}</div>
+                            <div className="truncate font-medium flex items-center gap-1.5">
+                              {school.number && (
+                                <span className="text-[10px] px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded font-bold">
+                                  {school.number}
+                                </span>
+                              )}
+                              <span className="truncate">{school.name}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 truncate">{school.region}</div>
                           </div>
-                          <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                          <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shrink-0">
                             {school.code}
                           </span>
                         </button>

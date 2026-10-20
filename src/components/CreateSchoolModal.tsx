@@ -171,19 +171,19 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-5 sm:px-6 py-4 sm:py-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
               <SchoolIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">
+              <h2 className="text-base sm:text-lg font-bold">
                 {createdSchool ? "Maktab muvaffaqiyatli ochildi!" : "Yangi maktab ochish"}
               </h2>
-              <p className="text-xs text-blue-100">
+              <p className="text-[11px] sm:text-xs text-blue-100">
                 {createdSchool
                   ? "Maxsus ulanish kodi yaratildi"
                   : "Maktab ma'lumotlarini to'ldiring va maxsus kod oling"}
@@ -192,7 +192,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -201,7 +201,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
         {/* Content Body */}
         {createdSchool ? (
           /* Step 2: Success Screen with Unique Code */
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle className="w-8 h-8" />
@@ -258,7 +258,7 @@ export const CreateSchoolModal: React.FC<CreateSchoolModalProps> = ({
           </div>
         ) : (
           /* Step 1: School Creation Form */
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
             {error && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium">
                 {error}

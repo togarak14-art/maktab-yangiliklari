@@ -125,38 +125,38 @@ export const JoinSchoolModal: React.FC<JoinSchoolModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 sm:px-6 py-4 sm:py-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
               <LinkIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">Maktabga ulanish</h2>
-              <p className="text-xs text-blue-100">
+              <h2 className="text-base sm:text-lg font-bold">Maktabga ulanish</h2>
+              <p className="text-[11px] sm:text-xs text-blue-100">
                 Maktab ma'muriyati bergan maxsus kodni kiriting
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {success ? (
             <div className="py-8 text-center space-y-3">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
                 <CheckCircle className="w-10 h-10" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Muvaffaqiyatli ulandingiz!</h3>
-              <p className="text-sm text-slate-600">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900">Muvaffaqiyatli ulandingiz!</h3>
+              <p className="text-xs sm:text-sm text-slate-600">
                 {foundSchool?.name} yangiliklar lentasi ochilmoqda...
               </p>
             </div>
@@ -169,24 +169,35 @@ export const JoinSchoolModal: React.FC<JoinSchoolModalProps> = ({
                 </div>
               )}
 
-              {/* Code input form */}
+              {/* Code / Name input form */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-700">
-                  Maktab ulanish kodi (Masalan: MK-252525)
+                  Maktab kodi yoki raqami (Masalan: MK-560465 yoki 40)
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full">
                   <input
                     type="text"
-                    placeholder="MK-XXXXXX"
+                    placeholder="Masalan: 40 yoki MK-560465"
                     value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    className="flex-1 px-4 py-2.5 text-base font-mono uppercase font-bold border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 tracking-wider"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCode(val);
+                      setError(null);
+                      // Auto-check if exact code matches
+                      const exact = availableSchools.find(
+                        (s) => s.code.toUpperCase() === val.trim().toUpperCase()
+                      );
+                      if (exact) {
+                        setFoundSchool(exact);
+                      }
+                    }}
+                    className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 text-sm sm:text-base font-mono uppercase font-bold border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 tracking-wider"
                   />
                   <button
                     type="button"
                     onClick={() => handleCheckCode()}
                     disabled={checking || !code.trim()}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
                   >
                     {checking ? (
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -198,33 +209,71 @@ export const JoinSchoolModal: React.FC<JoinSchoolModalProps> = ({
                 </div>
               </div>
 
-              {/* Available demo school hint */}
-              {!foundSchool && availableSchools.length > 0 && (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Mavjud maktablar (Tezkor tanlash):
+              {/* Live search matching suggestions or all available schools */}
+              {!foundSchool && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <span>
+                      {code.trim()
+                        ? `Mos keluvchi maktablar (${
+                            availableSchools.filter((s) => {
+                              const q = code.trim().toLowerCase();
+                              return (
+                                s.name.toLowerCase().includes(q) ||
+                                s.code.toLowerCase().includes(q) ||
+                                s.region.toLowerCase().includes(q) ||
+                                (s.number && s.number.toLowerCase() === q)
+                              );
+                            }).length
+                          }):`
+                        : `Mavjud maktablar (${availableSchools.length}):`}
+                    </span>
+                    <span className="text-slate-400 font-normal">Tanlash uchun bosing</span>
                   </div>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                    {availableSchools.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => {
-                          setCode(s.code);
-                          setFoundSchool(s);
-                          setError(null);
-                        }}
-                        className="w-full text-left p-2 rounded-lg bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 flex items-center justify-between text-xs transition-colors"
-                      >
-                        <div className="truncate pr-2">
-                          <span className="font-semibold text-slate-800">{s.name}</span>
-                          <span className="text-slate-400 block text-[10px]">{s.region}</span>
-                        </div>
-                        <span className="font-mono text-[11px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
-                          {s.code}
-                        </span>
-                      </button>
-                    ))}
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {availableSchools
+                      .filter((s) => {
+                        if (!code.trim()) return true;
+                        const q = code.trim().toLowerCase();
+                        const cleanDigits = q.replace(/\D/g, '');
+                        return (
+                          s.name.toLowerCase().includes(q) ||
+                          s.code.toLowerCase().includes(q) ||
+                          s.region.toLowerCase().includes(q) ||
+                          (s.number && (s.number.toLowerCase() === q || (cleanDigits && s.number === cleanDigits))) ||
+                          (cleanDigits && s.code.includes(cleanDigits))
+                        );
+                      })
+                      .map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setCode(s.code);
+                            setFoundSchool(s);
+                            setError(null);
+                          }}
+                          className="w-full text-left p-2.5 rounded-xl bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50/70 flex items-center justify-between text-xs transition-all cursor-pointer shadow-xs group"
+                        >
+                          <div className="truncate pr-2">
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800 group-hover:text-blue-700">
+                              {s.number && (
+                                <span className="px-1.5 py-0.2 bg-blue-100 text-blue-700 rounded text-[10px]">
+                                  {s.number}-maktab
+                                </span>
+                              )}
+                              <span className="truncate">{s.name}</span>
+                            </div>
+                            <span className="text-slate-400 block text-[10px] truncate mt-0.5">
+                              {s.region}
+                            </span>
+                          </div>
+                          <span className="font-mono text-[11px] bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg border border-blue-200 shrink-0">
+                            {s.code}
+                          </span>
+                        </button>
+                      ))}
                   </div>
                 </div>
               )}

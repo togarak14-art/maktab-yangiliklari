@@ -2,16 +2,31 @@
   "schools": [
     {
       "id": "school-7f462930-6d84-4d6a-8579-b33fdab90592",
-      "name": "umumiy orta talim maktabi",
+      "name": "40-sonli umumiy o'rta ta'lim maktabi",
       "number": "40",
-      "region": "Andijon viloyati, Oltinkol tumani,Kotarmachek mfy",
-      "director": "jalilov abdurazoq",
-      "phone": "+998 945471420",
+      "region": "Andijon viloyati, Oltinko'l tumani, Ko'tarmachek MFY",
+      "director": "Jalilov Abdurazoq",
+      "phone": "+998 94 547 14 20",
       "code": "MK-560465",
       "adminLogin": "maktab40--",
       "passwordHash": "302943f9001ef5ca372f17cad28a6c2b3caf91381d0264b29a7f3055cec5722c",
       "salt": "6890153b27c72f29f06b791067a77346",
-      "createdAt": "2026-10-16T05:22:02.909Z"
+      "createdAt": "2026-10-16T05:22:02.909Z",
+      "description": "Umumiy o'rta ta'lim maktabi"
+    },
+    {
+      "id": "school-44bd0a90-4d87-4d6b-b0d6-4566aef5d757",
+      "name": "84-sonli umumiy o'rta ta'lim maktabi",
+      "number": "84",
+      "region": "Toshkent shahri, Olmazor tumani",
+      "director": "Dilshod Karimov",
+      "phone": "+998 90 999 84 84",
+      "code": "MK-848484",
+      "adminLogin": "admin84",
+      "passwordHash": "192b2da219ea8859d5e8e5d53770fff46c334bfc1fb1d3611148ab312ce612b6",
+      "salt": "c4509a6ee06488a7e2df01e2def76925",
+      "createdAt": "2026-10-14T14:15:01.194Z",
+      "description": "Aniq fanlar va chet tillariga ixtisoslashtirilgan maktab"
     },
     {
       "id": "school-25-demo",

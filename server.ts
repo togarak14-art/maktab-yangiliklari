@@ -50,8 +50,13 @@ const upload = multer({
       'video/webm',
       'video/quicktime',
       'video/x-matroska',
+      'video/3gpp',
+      'video/3gpp2',
+      'video/x-msvideo',
+      'video/avi',
     ];
-    if (allowedMime.includes(file.mimetype) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    const isVideoExt = /\.(mp4|webm|mov|mkv|avi|3gp|m4v|ogg|ogv|ts)$/i.test(file.originalname);
+    if (allowedMime.includes(file.mimetype) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || isVideoExt) {
       cb(null, true);
     } else {
       cb(new Error("Faqat rasm va video fayllar qo'llab-quvvatlanadi."));
@@ -94,6 +99,7 @@ export interface NewsItem {
   isImportant: boolean;
   images: string[];
   videoUrl?: string | null;
+  videos?: string[];
   authorName: string;
   authorRole: string;
   createdAt: string;
@@ -306,6 +312,48 @@ app.get('/api/schools', (_req, res) => {
   res.json({ schools: safeSchools });
 });
 
+// GET /api/schools/search - Full-text search for schools by name, number, region, director, or code
+app.get('/api/schools/search', (req, res) => {
+  const rawQ = ((req.query.q as string) || '').trim().toLowerCase();
+  const region = ((req.query.region as string) || '').trim().toLowerCase();
+
+  let results = db.schools;
+
+  if (region && region !== 'all') {
+    results = results.filter((s) => s.region.toLowerCase().includes(region));
+  }
+
+  if (rawQ) {
+    const cleanDigits = rawQ.replace(/\D/g, '');
+    const cleanAlphaNum = rawQ.replace(/[^a-z0-9]/g, '');
+
+    results = results.filter((s) => {
+      const sName = s.name.toLowerCase();
+      const sRegion = s.region.toLowerCase();
+      const sDirector = s.director.toLowerCase();
+      const sNumber = (s.number || '').toLowerCase();
+      const sCode = s.code.toLowerCase();
+      const sCodeClean = sCode.replace(/[^a-z0-9]/g, '');
+
+      // Name, region, or director matches
+      if (sName.includes(rawQ) || sRegion.includes(rawQ) || sDirector.includes(rawQ)) {
+        return true;
+      }
+      // Number match
+      if (sNumber && (sNumber === rawQ || (cleanDigits && sNumber === cleanDigits))) {
+        return true;
+      }
+      // Code match (e.g. MK-560465, 560465, mk560465)
+      if (sCode.includes(rawQ) || (cleanAlphaNum && sCodeClean.includes(cleanAlphaNum))) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  res.json({ schools: results.map(sanitizeSchool) });
+});
+
 // GET /api/schools/:id - Single school info
 app.get('/api/schools/:id', (req, res) => {
   const school = db.schools.find((s) => s.id === req.params.id);
@@ -315,14 +363,78 @@ app.get('/api/schools/:id', (req, res) => {
   res.json({ school: sanitizeSchool(school) });
 });
 
-// GET /api/schools/by-code/:code - Find school by unique join code
+// GET /api/schools/by-code/:code - Find school by unique join code OR number/name
 app.get('/api/schools/by-code/:code', (req, res) => {
-  const code = req.params.code.trim().toUpperCase();
-  const school = db.schools.find((s) => s.code.toUpperCase() === code);
+  const raw = (req.params.code || '').trim();
+  const clean = raw.toUpperCase().replace(/\s+/g, '');
+  const cleanAlphaNum = clean.replace(/[^A-Z0-9]/g, '');
+  const cleanDigits = raw.replace(/\D/g, '');
+
+  // 1. Exact code match (e.g. MK-560465)
+  let school = db.schools.find((s) => s.code.toUpperCase() === clean);
+
+  // 2. Alphanumeric match (e.g. MK560465 vs MK-560465)
+  if (!school && cleanAlphaNum) {
+    school = db.schools.find((s) => s.code.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanAlphaNum);
+  }
+
+  // 3. Digits only match code suffix or number (e.g. "560465" -> "MK-560465" or "40" -> school #40)
+  if (!school && cleanDigits) {
+    school = db.schools.find((s) => s.code.replace(/\D/g, '') === cleanDigits || s.number === cleanDigits);
+  }
+
+  // 4. Flexible name or number match
   if (!school) {
-    return res.status(404).json({ error: `"${code}" kodli maktab topilmadi. Kodni tekshirib qayta kiriting.` });
+    const q = raw.toLowerCase();
+    school = db.schools.find((s) =>
+      (s.number && s.number.toLowerCase() === q) ||
+      s.name.toLowerCase().includes(q)
+    );
+  }
+
+  if (!school) {
+    return res.status(404).json({ error: `"${raw}" bo'yicha maktab topilmadi. Kod yoki maktab raqamini tekshirib qayta kiriting.` });
   }
   res.json({ school: sanitizeSchool(school) });
+});
+
+// POST /api/schools/sync - Sync schools created in local storage/APK to central database
+app.post('/api/schools/sync', (req, res) => {
+  const { schools } = req.body;
+  if (!Array.isArray(schools)) {
+    return res.status(400).json({ error: "schools massivi kutilmoqda" });
+  }
+
+  let addedCount = 0;
+  for (const s of schools) {
+    if (!s || !s.id || !s.name || !s.code) continue;
+    const exists = db.schools.some((existing) => existing.id === s.id || existing.code === s.code);
+    if (!exists) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const newSchool: School = {
+        id: s.id,
+        name: s.name.trim(),
+        number: (s.number || '').trim(),
+        region: (s.region || '').trim(),
+        director: (s.director || '').trim(),
+        phone: (s.phone || '').trim(),
+        code: s.code.trim().toUpperCase(),
+        adminLogin: (s.adminLogin || `admin_${Date.now()}`).trim(),
+        passwordHash: s.passwordHash || hashPassword('123456', salt),
+        salt,
+        createdAt: s.createdAt || new Date().toISOString(),
+        description: s.description,
+      };
+      db.schools.unshift(newSchool);
+      addedCount++;
+    }
+  }
+
+  if (addedCount > 0) {
+    saveDB(db);
+  }
+
+  res.json({ success: true, addedCount, totalSchools: db.schools.length });
 });
 
 // POST /api/schools - Create a brand new school
@@ -605,10 +717,12 @@ app.post('/api/schools/:id/news', authAdmin, (req, res) => {
     return res.status(404).json({ error: "Maktab topilmadi." });
   }
 
-  const { title, content, category, isImportant, images, videoUrl, authorName, authorRole } = req.body;
+  const { title, content, category, isImportant, images, videoUrl, videos, authorName, authorRole } = req.body;
   if (!title || !content) {
     return res.status(400).json({ error: "Sarlavha va yangilik matni kiritilishi shart." });
   }
+
+  const cleanVideos = Array.isArray(videos) ? videos : (videoUrl ? [videoUrl.trim()] : []);
 
   const newNews: NewsItem = {
     id: 'news-' + crypto.randomUUID(),
@@ -618,7 +732,8 @@ app.post('/api/schools/:id/news', authAdmin, (req, res) => {
     category: category || 'tadbir',
     isImportant: Boolean(isImportant),
     images: Array.isArray(images) ? images : [],
-    videoUrl: videoUrl ? videoUrl.trim() : null,
+    videoUrl: videoUrl ? videoUrl.trim() : (cleanVideos.length > 0 ? cleanVideos[0] : null),
+    videos: cleanVideos,
     authorName: (authorName || session.directorName || school.director).trim(),
     authorRole: (authorRole || "Maktab ma'muriyati").trim(),
     createdAt: new Date().toISOString(),
@@ -661,13 +776,14 @@ app.put('/api/schools/:id/news/:newsId', authAdmin, (req, res) => {
     return res.status(404).json({ error: "Yangilik topilmadi." });
   }
 
-  const { title, content, category, isImportant, images, videoUrl } = req.body;
+  const { title, content, category, isImportant, images, videoUrl, videos } = req.body;
   if (title) newsItem.title = title.trim();
   if (content) newsItem.content = content.trim();
   if (category) newsItem.category = category;
   if (isImportant !== undefined) newsItem.isImportant = Boolean(isImportant);
   if (Array.isArray(images)) newsItem.images = images;
   if (videoUrl !== undefined) newsItem.videoUrl = videoUrl ? videoUrl.trim() : null;
+  if (Array.isArray(videos)) newsItem.videos = videos;
   newsItem.updatedAt = new Date().toISOString();
 
   saveDB(db);
@@ -699,13 +815,19 @@ app.post('/api/upload', upload.array('files', 10), (req, res) => {
       return res.status(400).json({ error: "Hech qanday fayl tanlanmagan." });
     }
 
-    const uploaded = files.map((file) => ({
-      url: `/uploads/${file.filename}`,
-      originalName: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
-      type: file.mimetype.startsWith('video/') ? 'video' : 'image',
-    }));
+    const uploaded = files.map((file) => {
+      const isVideo =
+        file.mimetype.startsWith('video/') ||
+        /\.(mp4|webm|mov|mkv|avi|3gp|m4v|ogg|ogv|ts)$/i.test(file.originalname);
+
+      return {
+        url: `/uploads/${file.filename}`,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        type: isVideo ? 'video' : 'image',
+      };
+    });
 
     res.json({
       message: "Fayllar muvaffaqiyatli yuklandi.",
